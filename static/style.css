@@ -1,0 +1,86 @@
+body {
+  background: #f8f9fa;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.main-card {
+  max-width: 600px;
+  margin: 50px auto;
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  padding: 30px;
+}
+
+.main-card h2 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.main-card .form-control {
+  border-radius: 10px;
+}
+
+.main-card .btn {
+  border-radius: 10px;
+  width: 100%;
+}
+
+/* Overlay full screen loader */
+#overlay-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeOut 3s forwards;
+}
+
+/* Custom animated loader */
+.loader {
+  width: 100px;
+  aspect-ratio: 1;
+  background: #554236;
+  display: grid;
+  transform-origin: top right;
+  animation: l5-0 4s infinite linear;
+}
+.loader::before,
+.loader::after {
+  content: "";
+  grid-area: 1/1;
+  background: #f77825;
+  transform-origin: inherit;
+  animation: inherit;
+  animation-name: l5-1;
+  animation-duration: 5s;
+}
+.loader::after {
+  background: #60B99A;
+  --s: 60deg;
+}
+
+@keyframes l5-0 {
+  0%, 5%   { transform: rotate(0) }
+  25%, 30% { transform: rotate(90deg) }
+  50%, 55% { transform: rotate(180deg) }
+  75%, 80% { transform: rotate(270deg) }
+  100%    { transform: rotate(360deg) }
+}
+
+@keyframes l5-1 {
+  50% { transform: rotate(var(--s, 30deg)) }
+  100% { transform: rotate(0) }
+}
+
+@keyframes fadeOut {
+  0%   { opacity: 1; visibility: visible; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}

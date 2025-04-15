@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Nettoyage CSV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <script>
+        function handleSubmit(event) {
+            event.preventDefault(); // Empêche l'envoi immédiat
+    
+            const loader = document.getElementById("overlay-loader");
+            loader.style.display = "flex";
+    
+            // Envoie le formulaire après 5 secondes (5000ms)
+            setTimeout(() => {
+                event.target.submit();
+            }, 5000);
+        }
+    </script>
+    
+    <div class="container">
+        <div class="main-card mt-5 p-4 bg-light rounded shadow">
+            <h2>🧹 Nettoyage de fichier CSV</h2>
+            <form id="csvForm" action="/upload" method="POST" enctype="multipart/form-data" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                    <label>Choisissez un fichier (.csv, .json, .xml)</label>
+                    <input type="file" name="file" accept=".csv,.json,.xml" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="outlier_action">Traitement des valeurs aberrantes :</label>
+                    <select name="outlier_action" class="form-control" required>
+                        <option value="remove">❌ Supprimer la ligne</option>
+                        <option value="mean">📊 Remplacer par la moyenne</option>
+                        <option value="zero">0️⃣ Remplacer par 0</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block">🚀 Lancer le nettoyage</button>
+            </form>
+        </div>
+
+        <!-- Loader personnalisé -->
+        <div id="overlay-loader" style="display: none;">
+            <div class="loader"></div>
+        </div>
+
+        {% if deleted_rows is not none %}
+        <div class="mt-5 p-4 bg-white rounded shadow-sm">
+            <h4>📊 Résumé des modifications :</h4>
+            <p><strong>Lignes supprimées :</strong> {{ deleted_rows }}</p>
+            <p><strong>Lignes modifiées :</strong> {{ modified_rows }}</p>
+
+            {% if diff is not none %}
+            <h5>🔁 Comparatif avant / après :</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Colonne</th>
+                            <th>Avant</th>
+                            <th>Après</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index in diff.index %}
+                            <tr>
+                                <td>{{ index }}</td>
+                                <td>{{ diff.loc[index].get('self', '') }}</td>
+                                <td>{{ diff.loc[index].get('other', '') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>Aucune modification détectée.</p>
+            {% endif %}
+
+            <h5>ℹ️ Explication des actions :</h5>
+            <ul>
+                <li><strong>Valeurs manquantes</strong> : remplacées par "0" (nombres) ou "N/A" (textes).</li>
+                <li><strong>Valeurs aberrantes</strong> : traitées selon votre sélection.</li>
+                <li><strong>Doublons</strong> : lignes identiques supprimées.</li>
+            </ul>
+            <a href="{{ url_for('download_file', filename=cleaned_file) }}" class="btn btn-primary mt-3">
+                📥 Télécharger le fichier nettoyé
+            </a>            
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showLoader() {
+            const loader = document.getElementById("overlay-loader");
+            loader.style.display = "flex";
+            // Le fadeOut est déjà géré en CSS avec animation de 5s
+        }
+    </script>
+</body>
+</html>
