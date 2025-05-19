@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Historique de vos fichiers uploadés</h2>
+    {% if uploads %}
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>Nom du fichier original</th>
+                <th>Date d'upload</th>
+                <th>Fichier nettoyé</th>
+                <th>Téléchargement</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for upload in uploads %}
+            <tr>
+                <td>{{ upload[1] }}</td>
+                <td>{{ upload[4] }}</td>
+                <td>{{ upload[3] }}</td>
+                <td>
+                    <a href="{{ url_for('download_file', filename=upload[3]) }}" class="btn btn-success btn-sm">Télécharger</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Aucun fichier uploadé pour l’instant.</p>
+    {% endif %}
+</div>
+{% endblock %}

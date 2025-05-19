@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport détaillé</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        .legend-box {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ffffff;
+        }
+        .missing { background-color: #ffc70f; }
+        .outlier { background-color: #fd7883; }
+        .duplicate { background-color: #58cadf; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <h4 class="mt-5">Seuils des valeurs aberrantes (IQR)</h4>
+<table class="table table-sm table-bordered w-auto">
+    <thead>
+        <tr>
+            <th>Colonne</th>
+            <th>Min</th>
+            <th>Max</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for col, bounds in thresholds.items() %}
+            <tr>
+                <td>{{ col }}</td>
+                <td>{{ bounds.min }}</td>
+                <td>{{ bounds.max }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+    <h2 class="mb-4">Enregistrements après nettoyage</h2>
+
+    <div class="legend-box">
+        <div class="legend-item"><div class="color-box missing"></div>Valeur manquante</div>
+        <div class="legend-item"><div class="color-box outlier"></div>Valeur aberrante</div>
+        <div class="legend-item"><div class="color-box duplicate"></div>Ligne dupliquée</div>
+    </div>
+
+    {{ table|safe }}
+
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('rapport', filename=filename, page=page-1) }}">Précédent</a>
+                </li>
+            {% endif %}
+            {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('rapport', filename=filename, page=p) }}">{{ p }}</a>
+                </li>
+            {% endfor %}
+            {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('rapport', filename=filename, page=page+1) }}">Suivant</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Retour à l'accueil</a>
+</div>
+</body>
+</html>
