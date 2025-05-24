@@ -102,6 +102,26 @@ def register():
             conn.close()
             message = "Utilisateur créé avec succès. Vous pouvez maintenant vous connecter."
     return render_template('register.html', message=message)
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    message = None
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        new_password = request.form['new_password']
+        if not username or not new_password:
+            message = "Veuillez remplir tous les champs."
+        else:
+            user = get_user_by_username(username)
+            if user:
+                conn = sqlite3.connect('users.db')
+                c = conn.cursor()
+                c.execute("UPDATE users SET password = ? WHERE username = ?", (generate_password_hash(new_password), username))
+                conn.commit()
+                conn.close()
+                message = "Mot de passe réinitialisé avec succès !"
+            else:
+                message = "Utilisateur introuvable."
+    return render_template('reset_password.html', message=message)
 
 # ------------------------ Tes fonctions existantes
 def detect_column_type(col, series):
