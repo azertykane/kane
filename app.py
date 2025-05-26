@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import sqlite3
@@ -19,7 +20,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# ------------------ DB INIT ------------------
 def init_user_db():
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
@@ -36,7 +36,6 @@ def init_user_db():
 init_user_db()
 
 
-# ------------------ USER MODEL ------------------
 class User(UserMixin):
     def __init__(self, id, username, password_hash):
         self.id = id
@@ -161,28 +160,48 @@ def analyze_columns(df):
         })
     return analysis
 
-def clean_data(df, outlier_action='remove'):
+def clean_data(df, 
+                missing_action='mean', 
+                missing_custom_value=None, 
+                outlier_action='remove'):
     original_df = df.copy()
+
     for col in df.columns:
         if df[col].dtype == 'object':
             df[col].fillna('N/A', inplace=True)
         else:
-            df[col].fillna(0, inplace=True)
+            if missing_action == 'zero':
+                df[col].fillna(0, inplace=True)
+            elif missing_action == 'mean':
+                df[col].fillna(df[col].mean(), inplace=True)
+            elif missing_action == 'median':
+                df[col].fillna(df[col].median(), inplace=True)
+            elif missing_action == 'custom' and missing_custom_value is not None:
+                df[col].fillna(missing_custom_value, inplace=True)
+            else:
+                df[col].fillna(0, inplace=True)
+
     for col in df.select_dtypes(include='number').columns:
         Q1 = df[col].quantile(0.25)
         Q3 = df[col].quantile(0.75)
         IQR = Q3 - Q1
         lower = Q1 - 1.5 * IQR
         upper = Q3 + 1.5 * IQR
+
         if outlier_action == 'remove':
             df = df[(df[col] == 0) | ((df[col] >= lower) & (df[col] <= upper))]
         elif outlier_action == 'mean':
             mean_val = df[(df[col] >= lower) & (df[col] <= upper)][col].mean()
             df[col] = df[col].apply(lambda x: mean_val if (x < lower or x > upper and x != 0) else x)
+        elif outlier_action == 'median':
+            median_val = df[(df[col] >= lower) & (df[col] <= upper)][col].median()
+            df[col] = df[col].apply(lambda x: median_val if (x < lower or x > upper and x != 0) else x)
         elif outlier_action == 'zero':
             df[col] = df[col].apply(lambda x: 0 if (x < lower or x > upper and x != 0) else x)
+
     df.drop_duplicates(inplace=True)
     return df, original_df
+
 
 @app.route('/')
 @login_required
@@ -200,6 +219,14 @@ def index():
 def upload_file():
     file = request.files['file']
     outlier_action = request.form.get('outlier_action', 'remove')
+    missing_action = request.form.get('missing_action', 'zero')
+    missing_custom_value = request.form.get('missing_custom_value')
+    if missing_custom_value:
+        try:
+            missing_custom_value = float(missing_custom_value)
+        except ValueError:
+            pass  # laisser tel quel si c’est une chaîne par ex.
+
     filename = str(uuid.uuid4()) + '_' + file.filename
     path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(path)
@@ -225,7 +252,10 @@ def upload_file():
         return f"Erreur lors de la lecture du fichier : {e}", 500
 
     analysis = analyze_columns(df)
-    df_cleaned, original_data = clean_data(df.copy(), outlier_action)
+    df_cleaned, original_data = clean_data(df.copy(),
+                                           missing_action=missing_action,
+                                           missing_custom_value=missing_custom_value,
+                                           outlier_action=outlier_action)
     modified_rows = sum(~df_cleaned.fillna('').eq(original_data.fillna('')).all(axis=1))
     deleted_rows = len(original_data) - len(df_cleaned)
     cleaned_filename = 'cleaned_' + filename.rsplit('.', 1)[0] + '.csv'
@@ -245,6 +275,21 @@ def upload_file():
                            analysis=paginated_analysis,
                            current_page=page,
                            total_pages=total_pages)
+@app.route('/historique.html')
+def historique():
+    cleaned_folder = os.path.join(os.getcwd(), 'cleaned')  # ou 'static/cleaned'
+    files = []
+
+    for filename in os.listdir(cleaned_folder):
+        if filename.endswith('.csv'):  # Ou autre extension
+            filepath = os.path.join(cleaned_folder, filename)
+            date = datetime.datetime.fromtimestamp(os.path.getmtime(filepath)).strftime('%Y-%m-%d %H:%M:%S')
+            files.append({'name': filename, 'date': date})
+    # Trie les fichiers par date décroissante
+    files = sorted(files, key=lambda x: x['date'], reverse=True)
+
+  
+    return render_template('historique.html', files=files)
 
 @app.route('/download/<filename>')
 @login_required
